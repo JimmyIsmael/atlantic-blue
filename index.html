@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Negocios: Apartamento Atlantic Blue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Coastal Neutrals -->
+    <!-- Application Structure Plan: Se ha diseñado una aplicación de panel único (dashboard) para permitir una exploración fluida e intuitiva del plan de negocios. La estructura se divide en secciones temáticas: un resumen general, un escaparate visual de la propiedad, un análisis de mercado y, fundamentalmente, un simulador financiero interactivo. Esta arquitectura fue elegida para transformar los datos estáticos del informe en una herramienta dinámica de toma de decisiones, permitiendo al usuario analizar diferentes escenarios de rentabilidad de forma instantánea, lo cual es el objetivo principal para un inversor. -->
+    <!-- Visualization & Content Choices: El núcleo de la aplicación es el "Simulador Financiero". Objetivo: Comparar escenarios de rentabilidad. Método: Se utilizan controles deslizantes (sliders) para modificar el precio y la ocupación. Los resultados (ganancia, ROI, etc.) se actualizan en tiempo real en tarjetas de métricas y en un gráfico de barras de Chart.js que compara ingresos vs. gastos. Justificación: Esta interacción es mucho más poderosa que las tablas estáticas, ya que fomenta la exploración "what-if". Para la descripción de la propiedad, se utiliza un diseño visual con las imágenes proporcionadas para maximizar el impacto. El análisis de mercado se simplifica en tarjetas con iconos Unicode para una rápida comprensión. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .metric-card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .slider-track {
+            background: #e5e7eb;
+        }
+        .slider-thumb {
+            background: #2563eb;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #2563eb;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #2563eb;
+        }
+        /* Style for the modal (image magnifier) */
+        .modal {
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 50; /* Higher than other elements */
+        }
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-600">Atlantic Blue 1B</div>
+            <!-- Navigation links updated to reflect the new section order -->
+            <div class="hidden md:flex space-x-8">
+                <a href="#propiedad" class="text-gray-600 hover:text-blue-600">La Propiedad</a>
+                <a href="#diseno-patio" class="text-gray-600 hover:text-blue-600">Diseño del Patio</a>
+                <a href="#simulador" class="text-gray-600 hover:text-blue-600">Simulador Financiero</a>
+                <a href="#costos" class="text-gray-600 hover:text-blue-600">Costos</a>
+                <a href="#plan-de-negocios" class="text-gray-600 hover:text-blue-600">Plan de Negocios</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="resumen" class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4">Dashboard de Inversión Inmobiliaria</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">Una herramienta interactiva para analizar la viabilidad y rentabilidad del apartamento 1B en el Residencial Atlantic Blue, Puerto Plata.</p>
+        </section>
+        
+        <!-- Section 1: La Propiedad y su Ventaja Competitiva -->
+        <section id="propiedad" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">La Propiedad y su Ventaja Competitiva</h2>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <!-- Image Gallery -->
+                <div class="relative w-full h-80 rounded-lg overflow-hidden shadow-lg group">
+                    <img id="main-gallery-image" src="Atlantic_Blue_Cam02.jpg" class="w-full h-full object-cover transition-opacity duration-500 cursor-pointer" alt="Render del apartamento Atlantic Blue">
+                    <!-- Navigation Buttons -->
+                    <button id="prev-btn" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/50 text-white p-2 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button id="next-btn" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/50 text-white p-2 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    <!-- Thumbnails -->
+                    <div id="thumbnails" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2"></div>
+                </div>
+                <div class="text-gray-600">
+                    <p class="mb-4">Este apartamento de 2 dormitorios y 2 baños cuenta con 75 m² de área habitable y un patio privado de 35 m², sumando un total de 110 m² de espacio funcional. Su diseño optimiza el espacio y ofrece acceso directo al patio, una característica clave que lo distingue en el mercado de alquiler y lo hace atractivo para huéspedes que valoran los espacios exteriores.</p>
+                    <p class="mb-4">El proyecto se encuentra en la tercera etapa, con un enfoque en la sostenibilidad y la integración con el entorno natural. Ubicado en una zona de alta demanda, combina lujo y confort con una excelente accesibilidad a puntos de interés turísticos y locales.</p>
+                    <p>La combinación de su tamaño, la calidad de la construcción y la ubicación estratégica lo posicionan como una inversión de alta rentabilidad, ideal para el mercado de alquiler a corto plazo (Airbnb).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Propuesta de Diseño del Patio -->
+        <section id="diseno-patio" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Propuesta de Diseño del Patio</h2>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <!-- Image URL actualizada a 'patio.jpeg' -->
+                    <img id="patio-image" src="patio.jpeg" alt="Diseño de patio para el apartamento Atlantic Blue" class="w-full h-auto rounded-xl shadow-md cursor-pointer">
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <p class="text-gray-600 mb-4">El apartamento contará con un patio moderno y elegante de 35 metros cuadrados. Verías los siguientes elementos:</p>
+                    <ul class="list-disc list-inside text-gray-600 space-y-2">
+                        <li><span class="font-semibold">Jacuzzi:</span> Un jacuzzi circular u ovalado, posiblemente con luces internas, situado en una de las esquinas del patio.</li>
+                        <li><span class="font-semibold">Deck de madera:</span> Alrededor del jacuzzi, habría un deck de madera que contrasta con el césped artificial del resto del patio.</li>
+                        <li><span class="font-semibold">Zona de Comedor:</span> Una mesa y sillas de exterior con un diseño minimalista, ubicadas cerca de la puerta del apartamento.</li>
+                        <li><span class="font-semibold">Barbacoa (BBQ):</span> Un asador moderno, integrado cerca del área del comedor.</li>
+                        <li><span class="font-semibold">Zona Lounge:</span> Un pequeño espacio con dos sillones y una mesa baja, perfectos para relajarse.</li>
+                        <li><span class="font-semibold">Iluminación:</span> Cadenas de luces cálidas colgadas sobre el área de comedor y lounge para crear un ambiente acogedor.</li>
+                        <li><span class="font-semibold">Plantas:</span> Macetas con plantas altas y vegetación para dar privacidad y un toque natural, complementando el césped artificial.</li>
+                        <li><span class="font-semibold">Paleta de Colores:</span> Los colores serían neutros (blancos, grises y beiges), con toques de verde de las plantas y el césped, y posiblemente un azul sutil para evocar la piscina y el mar del complejo.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Simulador Financiero de Rentabilidad -->
+        <section id="simulador" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Simulador Financiero de Rentabilidad</h2>
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Card for Financial Metrics -->
+                <div class="lg:col-span-1 p-6 bg-white rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Métricas Clave</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Costo Inicial, Remodelación y Equipamiento: </span>
+                            <span id="required-investment" class="font-bold text-gray-800">$0</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Ingresos Anuales:</span>
+                            <span id="annual-revenue" class="font-bold text-gray-800">$0</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Gastos Anuales:</span>
+                            <span id="annual-expenses" class="font-bold text-gray-800">$0</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Ganancia Neta Anual:</span>
+                            <span id="net-profit" class="font-bold text-green-600">$0</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Retorno de Inversión (ROI):</span>
+                            <span id="roi" class="font-bold text-blue-600">0%</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-600">
+                            <span>Tiempo de Recuperación:</span>
+                            <span id="payback-period" class="font-bold text-gray-800">N/A</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card for Sliders and Controls -->
+                <div class="lg:col-span-2 p-6 bg-white rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Ajusta los Parámetros</h3>
+                    <div class="space-y-6">
+                        <!-- Slider for financed amount -->
+                        <div>
+                            <label for="financed-slider" class="block text-sm font-medium text-gray-700 mb-2">Monto Financiado: <span id="financed-value" class="font-bold text-blue-600">$0</span></label>
+                            <input type="range" id="financed-slider" min="0" max="146000" step="1000" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <!-- Slider for annual interest rate -->
+                        <div>
+                            <label for="interest-rate-slider" class="block text-sm font-medium text-gray-700 mb-2">Tasa de Interés Anual: <span id="interest-rate-value" class="font-bold text-blue-600">7.00%</span></label>
+                            <input type="range" id="interest-rate-slider" min="3" max="15" step="0.25" value="7" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <!-- New slider for loan term -->
+                        <div>
+                            <label for="loan-term-slider" class="block text-sm font-medium text-gray-700 mb-2">Plazo del Préstamo (Años): <span id="loan-term-value" class="font-bold text-blue-600">30 años</span></label>
+                            <input type="range" id="loan-term-slider" min="5" max="30" step="1" value="30" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <!-- Slider for nightly price -->
+                        <div>
+                            <label for="price-slider" class="block text-sm font-medium text-gray-700 mb-2">Precio por Noche: <span id="price-value" class="font-bold text-blue-600">$100</span></label>
+                            <input type="range" id="price-slider" min="50" max="250" value="100" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <!-- Slider for monthly occupancy -->
+                        <div>
+                            <label for="occupancy-slider" class="block text-sm font-medium text-gray-700 mb-2">Ocupación Mensual: <span id="occupancy-value" class="font-bold text-blue-600">15 noches</span></label>
+                            <input type="range" id="occupancy-slider" min="0" max="30" value="15" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                    <div class="mt-8 chart-container">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                    <!-- New note with the ROI explanation -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-800 font-semibold mb-2">¿Por qué mi ROI aumenta al extender el plazo del préstamo?</p>
+                        <p class="text-sm text-blue-700">El cálculo de este simulador se basa en el flujo de caja anual. Un plazo de préstamo más largo resulta en un pago mensual de hipoteca más bajo. Esto reduce tus gastos anuales y aumenta tu ganancia neta anual, lo que se traduce en un Retorno de Inversión (ROI) más alto para tu inversión inicial. Sin embargo, recuerda que un préstamo a más largo plazo también implica pagar una cantidad total de intereses mucho mayor.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Detalles de Costos y Factores de Inversión -->
+        <section id="costos" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Detalles de Costos y Factores de Inversión</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                <!-- Investment Cost Card -->
+                <div class="metric-card">
+                    <div class="text-5xl mb-4">💰</div>
+                    <p class="text-2xl font-bold text-gray-800">$164,285</p>
+                    <p class="text-sm text-gray-500">Costo de Inversión</p>
+                </div>
+                <!-- Maintenance Cost Card (Complex) -->
+                <div class="metric-card">
+                    <div class="text-5xl mb-4">🏘️</div>
+                    <p class="text-2xl font-bold text-gray-800">$1,440</p>
+                    <p class="text-sm text-gray-500">Costo de Mantenimiento Anual<br>(Complejo)</p>
+                </div>
+                <!-- Maintenance Cost Card (Apartment) -->
+                <div class="metric-card">
+                    <div class="text-5xl mb-4">🏠</div>
+                    <p class="text-2xl font-bold text-gray-800">$1,200</p>
+                    <p class="text-sm text-gray-500">Costo de Mantenimiento Anual<br>(Apartamento)</p>
+                </div>
+                <!-- Administration Fee Card -->
+                <div class="metric-card">
+                    <div class="text-5xl mb-4">💼</div>
+                    <p class="text-2xl font-bold text-gray-800">10%</p>
+                    <p class="text-sm text-gray-500">Tarifa de Administración</p>
+                </div>
+                <!-- Other Expenses Card -->
+                <div class="metric-card">
+                    <div class="text-5xl mb-4">📝</div>
+                    <p class="text-2xl font-bold text-gray-800">10%</p>
+                    <p class="text-sm text-gray-500">Gastos Adicionales (Limpieza, etc.)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW SECTION FOR APPRECIATION SLIDER -->
+        <section id="apreciacion-anual" class="mb-16">
+            <div class="lg:col-span-2 p-6 bg-white rounded-xl shadow-lg">
+                <h2 class="text-3xl font-bold mb-8 text-center">Tasa de Apreciación Anual</h2>
+                <!-- The new note requested by the user -->
+            <p class="text-gray-600 italic text-sm mt-4 text-center">Basado en un costo inicial de adquisición de <strong>US$146,000.</strong></p>
+                    <div class="space-y-6">
+                        <div>
+                        <label for="appreciation-slider" class="block text-sm font-medium text-gray-700 mb-2">Apreciación Anual: <span id="appreciation-value" class="font-bold text-blue-600">0%</span></label>
+                        <input type="range" id="appreciation-slider" min="0" max="10" step="0.1" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="apreciacion-propiedad" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Proyección de Valor de la Propiedad</h2>
+            <div class="grid md:grid-cols-3 gap-6 text-center">
+                <div class="metric-card">
+                    <p class="text-sm text-gray-500 mb-2">Valor Estimado en 5 Años</p>
+                    <p id="value-5-years" class="text-2xl font-bold text-gray-800">$0</p>
+                </div>
+                <div class="metric-card">
+                    <p class="text-sm text-gray-500 mb-2">Valor Estimado en 10 Años</p>
+                    <p id="value-10-years" class="text-2xl font-bold text-gray-800">$0</p>
+                </div>
+                <div class="metric-card">
+                    <p class="text-sm text-gray-500 mb-2">Valor Estimado en 15 Años</p>
+                    <p id="value-15-years" class="text-2xl font-bold text-gray-800">$0</p>
+                </div>
+            </div>
+            <!-- The new note requested by the user -->
+            <p class="text-gray-600 italic text-sm mt-4">Nota: De acuerdo con este articulo de Global Property Guide (Dominican Republic's Residential Property Market Analysis 2025), la plusvalia promedio en Puerto Plata ronda entre el 5 % y el 10% anual.</p>
+        </section>
+
+        <!-- Section 5: Plan de Negocios Completo -->
+        <section id="plan-de-negocios" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">Plan de Negocios Completo</h2>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">1. Resumen Ejecutivo (Executive Summary)</h3>
+                <p class="text-gray-600 mb-4">Este plan de negocios detalla la estrategia para operar una propiedad de alquiler a corto plazo en el complejo Atlantic Blue, Puerto Plata. El objetivo es capitalizar la necesidad de mercado de alojamiento tranquilo y familiar, lejos del bullicio del centro de la ciudad, pero con fácil acceso a atracciones clave. La propuesta de valor única de la propiedad es un patio privado y completamente equipado, ideal para grupos de hasta 6 personas. Con un costo de inversión de $164,285, el plan proyecta un retorno de la inversión anual del 5.88% basado en una ocupación estimada de 15 noches al mes, con un período de recuperación de la inversión de 17.02 años.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">2. Descripción de la Propiedad y de la Empresa (Property and Company Description)</h3>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Ubicación:</span> Apartamento 1B, Bloque 4, Atlantic Blue, Puerto Plata.</p>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Capacidad:</span> El apartamento está diseñado para alojar cómodamente a grupos o familias de hasta 6 personas, con una cama tamaño king en la habitación principal y dos camas dobles en la secundaria.</p>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Misión:</span> Proporcionar una experiencia de hospedaje excepcional en un ambiente tranquilo y seguro, ofreciendo amenidades y un nivel de confort superior a la competencia local.</p>
+                <p class="text-gray-600 mb-4"><span class="font-semibold">Propuesta de Valor Única (USP):</span> Diseño y Ambiente: El complejo cuenta con un diseño arquitectónico moderno y elegante, con fachadas en tonos neutros y toques de color que crean un ambiente sereno. Las amplias áreas comunes, incluyendo la piscina y la zona social, reflejan un estilo de vida tipo resort, lo que eleva la experiencia del huésped. Patio Privado: Un patio de 35 metros cuadrados con cerca para mayor privacidad, equipado con jacuzzi, comedor de exterior, BBQ, sombrillas y luces decorativas. Estará ambientado con plantas y césped artificial para un entorno acogedor. Ubicación Premium: Al estar en el primer nivel, el apartamento ofrece un acceso más fácil, ideal para personas mayores o con movilidad reducida. Experiencia Comprobada: Como anfitriones de Airbnb, tenemos un profundo entendimiento de las necesidades de los huéspedes y de las mejores prácticas de hospitalidad. Equipamiento Superior: El apartamento contará con comodidades adicionales como una estación de café dedicada y un área de lavandería, diferenciándose de las propiedades similares.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">3. Análisis de Mercado (Market Analysis)</h3>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Público Objetivo:</span> Familias y grupos de hasta 6 personas que buscan tranquilidad, seguridad y un espacio exterior privado, con fácil acceso a la playa y a restaurantes.</p>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Necesidad del Mercado:</span> Los alojamientos similares en Puerto Plata suelen estar en áreas céntricas y ruidosas, lo que reduce la tranquilidad del huésped. Las propiedades en zonas de playa como Playa Dorada son más caras. Nuestra propiedad llena este vacío al ofrecer un entorno tranquilo con amenidades de alta calidad a un precio competitivo, combinando la tranquilidad de un lugar residencial con la cercanía a atracciones turísticas.</p>
+                <p class="text-600 mb-4"><span class="font-semibold">Ventajas Competitivas:</span> Patio privado con jacuzzi y BBQ. Localización en el primer nivel, accesible para todos los huéspedes. Experiencia y reputación probada como anfitriones. Equipamiento completo que supera a la competencia.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">4. Análisis de Riesgos y Oportunidades (Risks and Opportunities Analysis)</h3>
+                <p class="text-gray-600 mb-2"><span class="font-semibold">Desventajas/Riesgos Actuales:</span> Gran cantidad de otros apartamentos similares dentro del mismo complejo. Ubicación más alejada del centro de la ciudad, lo que puede ser un inconveniente para huéspedes sin vehículo. Posible necesidad de financiación, lo que generaría un pago mensual y reduciría el margen de beneficio.</p>
+                <p class="text-gray-600 mb-4"><span class="font-semibold">Ventajas/Oportunidades Actuales:</span> Tranquilidad y seguridad del área. Cercanía a Playa Dorada, cine, campo de golf, restaurantes, discotecas y casinos. Acceso a las amenidades del complejo: piscina, área infantil, área social y cancha deportiva. Cercanía a actividades turísticas como excursiones en buggies. La propiedad es nueva, lo que minimiza los costos de remodelación y mantenimiento inicial. El complejo cuenta con mantenimiento constante por parte de la constructora. Posibilidad de auto check-in y check-out gracias al acceso controlado. Parqueo privado con acceso controlado.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">5. Plan Financiero (Financial Plan)</h3>
+                
+                <h4 class="text-lg font-semibold text-gray-600 mb-2">Detalle de Costos</h4>
+                <div class="text-gray-600 mb-6">
+                    <p class="font-semibold">Costos Iniciales Totales: <span class="text-blue-600">$164,285</span></p>
+                    <ul class="list-disc list-inside ml-4 mb-4">
+                        <li>Costo de la Propiedad: $146,000</li>
+                        <li>Adecuación del Patio: $10,000</li>
+                        <li>Equipamiento de la Propiedad: $8,285</li>
+                    </ul>
+                    <p class="font-semibold">Costos Operacionales Mensuales Estimados: <span class="text-blue-600">$695</span></p>
+                    <ul class="list-disc list-inside ml-4">
+                        <li class="font-semibold">Costos Fijos: <span class="font-normal">$275</span>
+                            <ul class="list-circle list-inside ml-4 font-normal">
+                                <li>Mantenimiento del Complejo: $120</li>
+                                <li>Mantenimiento del Apartamento: $100</li>
+                                <li>Internet: $55</li>
+                            </ul>
+                        </li>
+                        <li class="font-semibold">Costos Variables: <span class="font-normal">$420</span>
+                            <ul class="list-circle list-inside ml-4 font-normal">
+                                <li>Electricidad: $200</li>
+                                <li>Agua: $20</li>
+                                <li>Servicio de Limpieza: $200</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="text-gray-600 mb-4 font-semibold">Proyección de Ingresos y Rentabilidad:</p>
+                <p class="text-gray-600 mb-4">A continuación, se presentan tres tablas de proyección de ingresos para diferentes tarifas por noche.</p>
+
+                <!-- Table 1 -->
+                <h4 class="text-lg font-semibold text-gray-600 mb-2">Tabla 1: Proyección a un Precio por Noche de $80</h4>
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Ocupación Mensual (Noches)</th>
+                                <th class="py-3 px-6">Ingresos Mensuales</th>
+                                <th class="py-3 px-6">Ganancia Neta Mensual</th>
+                                <th class="py-3 px-6">Retorno Anual (ROI)</th>
+                                <th class="py-3 px-6">Tiempo de Recuperación (Años)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$400</td>
+                                <td class="py-3 px-6">-$295</td>
+                                <td class="py-3 px-6">-2.15%</td>
+                                <td class="py-3 px-6">N/A</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$800</td>
+                                <td class="py-3 px-6">$105</td>
+                                <td class="py-3 px-6">0.77%</td>
+                                <td class="py-3 px-6">129.8</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15 (Estimado)</td>
+                                <td class="py-3 px-6">$1,200</td>
+                                <td class="py-3 px-6">$505</td>
+                                <td class="py-3 px-6">3.69%</td>
+                                <td class="py-3 px-6">27.06</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">30</td>
+                                <td class="py-3 px-6">$2,400</td>
+                                <td class="py-3 px-6">$1,705</td>
+                                <td class="py-3 px-6">12.45%</td>
+                                <td class="py-3 px-6">8.03</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table 2 -->
+                <h4 class="text-lg font-semibold text-gray-600 mb-2">Tabla 2: Proyección a un Precio por Noche de $100</h4>
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Ocupación Mensual (Noches)</th>
+                                <th class="py-3 px-6">Ingresos Mensuales</th>
+                                <th class="py-3 px-6">Ganancia Neta Mensual</th>
+                                <th class="py-3 px-6">Retorno Anual (ROI)</th>
+                                <th class="py-3 px-6">Tiempo de Recuperación (Años)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$500</td>
+                                <td class="py-3 px-6">-$195</td>
+                                <td class="py-3 px-6">-1.42%</td>
+                                <td class="py-3 px-6">N/A</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$1,000</td>
+                                <td class="py-3 px-6">$305</td>
+                                <td class="py-3 px-6">2.23%</td>
+                                <td class="py-3 px-6">44.99</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15 (Estimado)</td>
+                                <td class="py-3 px-6">$1,500</td>
+                                <td class="py-3 px-6">$805</td>
+                                <td class="py-3 px-6">5.88%</td>
+                                <td class="py-3 px-6">17.02</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">30</td>
+                                <td class="py-3 px-6">$3,000</td>
+                                <td class="py-3 px-6">$2,305</td>
+                                <td class="py-3 px-6">16.82%</td>
+                                <td class="py-3 px-6">5.95</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table 3 -->
+                <h4 class="text-lg font-semibold text-gray-600 mb-2">Tabla 3: Proyección a un Precio por Noche de $120</h4>
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Ocupación Mensual (Noches)</th>
+                                <th class="py-3 px-6">Ingresos Mensuales</th>
+                                <th class="py-3 px-6">Ganancia Neta Mensual</th>
+                                <th class="py-3 px-6">Retorno Anual (ROI)</th>
+                                <th class="py-3 px-6">Tiempo de Recuperación (Años)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$600</td>
+                                <td class="py-3 px-6">-$95</td>
+                                <td class="py-3 px-6">-0.69%</td>
+                                <td class="py-3 px-6">N/A</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$1,200</td>
+                                <td class="py-3 px-6">$505</td>
+                                <td class="py-3 px-6">3.69%</td>
+                                <td class="py-3 px-6">27.06</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15 (Estimado)</td>
+                                <td class="py-3 px-6">$1,800</td>
+                                <td class="py-3 px-6">$1,105</td>
+                                <td class="py-3 px-6">8.07%</td>
+                                <td class="py-3 px-6">12.39</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">30</td>
+                                <td class="py-3 px-6">$3,600</td>
+                                <td class="py-3 px-6">$2,905</td>
+                                <td class="py-3 px-6">21.23%</td>
+                                <td class="py-3 px-6">4.71</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- The new note requested by the user -->
+                <p class="text-gray-600 italic text-sm mt-4">Nota: El cálculo del retorno anual sobre la inversión se basa en la fórmula: ((Ganancia Neta Mensual x 12) / Costo Inicial Total) x 100. De financiar cualquier monto, el costo de financiamiento deberá ser contemplado en los cálculos para obtener una proyección más precisa.</p>
+            </div>
+        </section>
+        <section id="proyeccion-valorizacion" class="mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center text-gray-800">Proyección de Valorización de la Propiedad</h2>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-16">
+                <p class="text-gray-600 mb-4">Este anexo complementa el plan financiero al proyectar la plusvalía de la propiedad a largo plazo. Las siguientes secciones muestran el valor estimado del apartamento en diferentes escenarios de apreciación anual, basándose en un costo inicial de <span class="font-semibold text-blue-600">US$146,000</span>.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Apreciación del 3% Anual</h3>
+                <p class="text-gray-600 mb-4">Si la propiedad experimenta una apreciación anual constante del 3%, su valor proyectado aumentaría a lo largo del tiempo. Después de 5 años, el valor se estima en <span class="font-semibold">US$169,006.13</span>. A los 10 años, este valor crecería a <span class="font-semibold">US$195,959.04</span>, y a los 15 años, la propiedad alcanzaría un valor proyectado de <span class="font-semibold">US$227,133.58</span>.</p>
+                
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Años</th>
+                                <th class="py-3 px-6">Valor Proyectado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$169,006.13</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$195,959.04</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15</td>
+                                <td class="py-3 px-6">$227,133.58</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Apreciación del 5% Anual</h3>
+                <p class="text-gray-600 mb-4">Un escenario de apreciación del 5% anual muestra un crecimiento más rápido en el valor de la propiedad. En 5 años, el valor proyectado sería de <span class="font-semibold">US$186,220.65</span>. A los 10 años, se espera que el valor suba a <span class="font-semibold">US$237,926.31</span>. Con una apreciación del 5% a lo largo de 15 años, el valor de la propiedad se proyecta en <span class="font-semibold">US$304,025.59</span>.</p>
+                
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Años</th>
+                                <th class="py-3 px-6">Valor Proyectado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$186,220.65</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$237,926.31</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15</td>
+                                <td class="py-3 px-6">$304,025.59</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Apreciación del 7% Anual</h3>
+                <p class="text-gray-600 mb-4">Con una apreciación anual del 7%, el valor de la propiedad aumentaría de manera significativa. Después de 5 años, el valor proyectado sería de <span class="font-semibold">US$204,748.88</span>. A los 10 años, se estima que el valor alcanzaría los <span class="font-semibold">US$287,549.95</span>. A los 15 años, la propiedad tendría un valor proyectado de <span class="font-semibold">US$403,812.24</span>.</p>
+                
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Años</th>
+                                <th class="py-3 px-6">Valor Proyectado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$204,748.88</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$287,549.95</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15</td>
+                                <td class="py-3 px-6">$403,812.24</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Apreciación del 10% Anual</h3>
+                <p class="text-gray-600 mb-4">En un escenario de alta apreciación, con una tasa anual del 10%, la propiedad mostraría un crecimiento sustancial. El valor proyectado después de 5 años sería de <span class="font-semibold">US$235,537.95</span>. A los 10 años, el valor aumentaría a <span class="font-semibold">US$379,936.56</span>. Finalmente, en el escenario de 15 años, el valor de la propiedad se proyectaría en <span class="font-semibold">US$613,113.88</span>.</p>
+                
+                <div class="table-container mb-6">
+                    <table class="w-full text-left rounded-xl overflow-hidden shadow">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <tr>
+                                <th class="py-3 px-6">Años</th>
+                                <th class="py-3 px-6">Valor Proyectado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white text-gray-700">
+                            <tr class="border-b">
+                                <td class="py-3 px-6">5</td>
+                                <td class="py-3 px-6">$235,537.95</td>
+                            </tr>
+                            <tr class="border-b bg-gray-50">
+                                <td class="py-3 px-6">10</td>
+                                <td class="py-3 px-6">$379,936.56</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-3 px-6">15</td>
+                                <td class="py-3 px-6">$613,113.88</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <p class="text-gray-600 italic text-sm mt-4">Nota: Estas proyecciones son estimaciones y el valor real de la propiedad puede fluctuar debido a las condiciones del mercado y otros factores económicos. El costo inicial de la propiedad es de US$146,000.</p>
+        </section>
+
+
+    </main>
+
+    <!-- Fullscreen Image Modal -->
+    <div id="image-modal" class="modal fixed inset-0 flex items-center justify-center p-4 hidden">
+        <div class="modal-content relative">
+            <img id="modal-image" class="w-full h-auto rounded-lg shadow-xl" src="" alt="Amplified view of Atlantic Blue image">
+            <button id="modal-close-btn" class="absolute top-4 right-4 text-white text-3xl font-bold bg-gray-800 bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center transition-all hover:bg-opacity-100">&times;</button>
+        </div>
+    </div>
+    
+    <script>
+        // Data for the image gallery
+        const galleryImages = [
+            "Atlantic_Blue_Cam01.jpg",
+            "Atlantic_Blue_Cam02.jpg",
+            "Atlantic_Blue_Cam03.jpg",
+            "Atlantic_Blue_Cam04.jpg",
+            "patio.jpeg" // New image added here
+        ];
+        let currentImageIndex = 1; // Corresponds to the initial image (Cam02)
+
+        // DOM elements
+        const mainGalleryImage = document.getElementById('main-gallery-image');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const thumbnailsContainer = document.getElementById('thumbnails');
+
+        // Modal elements
+        const imageModal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // Financial simulator DOM elements
+        const priceSlider = document.getElementById('price-slider');
+        const occupancySlider = document.getElementById('occupancy-slider');
+        const financedSlider = document.getElementById('financed-slider');
+        const interestRateSlider = document.getElementById('interest-rate-slider');
+        const loanTermSlider = document.getElementById('loan-term-slider'); // New loan term slider
+        
+        const priceValueSpan = document.getElementById('price-value');
+        const occupancyValueSpan = document.getElementById('occupancy-value');
+        const financedValueSpan = document.getElementById('financed-value');
+        const interestRateValueSpan = document.getElementById('interest-rate-value');
+        const loanTermValueSpan = document.getElementById('loan-term-value'); // New span for loan term
+        
+        const requiredInvestmentSpan = document.getElementById('required-investment');
+        const annualRevenueSpan = document.getElementById('annual-revenue');
+        const annualExpensesSpan = document.getElementById('annual-expenses');
+        const netProfitSpan = document.getElementById('net-profit');
+        const roiSpan = document.getElementById('roi');
+        const paybackPeriodSpan = document.getElementById('payback-period');
+
+        // Constants from the business plan data
+        const totalPropertyCost = 146000;
+        const patioCost = 10000;
+        const equipmentCost = 8285;
+        const totalInvestmentCost = totalPropertyCost + patioCost + equipmentCost;
+        const monthlyOperatingExpenses = 695; // Sum of fixed ($275) and variable ($420) costs per month.
+
+        const appreciationSlider = document.getElementById('appreciation-slider'); // New appreciation slider
+
+        // Chart.js setup
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        const profitChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Ingresos Anuales', 'Gastos Anuales'],
+                datasets: [{
+                    label: 'Resultados Financieros',
+                    data: [0, 0], // Initial data
+                    backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                    borderColor: ['rgb(59, 130, 246)', 'rgb(239, 68, 68)'],
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(229, 231, 235, 1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Function to calculate and update financial metrics and chart
+        function updateFinancials() {
+            const price = parseFloat(priceSlider.value);
+            const occupancy = parseFloat(occupancySlider.value);
+            const financedAmount = parseFloat(financedSlider.value);
+            const annualInterestRate = parseFloat(interestRateSlider.value) / 100; // Convert to decimal
+            const loanTermYears = parseFloat(loanTermSlider.value); // Get the loan term in years
+            const appreciationRate = parseFloat(appreciationSlider.value);
+            
+            // Calculate monthly mortgage payment (simplified for demonstration)
+            const monthlyInterestRate = annualInterestRate / 12;
+            const numberOfPayments = loanTermYears * 12;
+            
+            let monthlyMortgage = 0;
+            // Only calculate if there is a financed amount and the interest rate is not zero
+            if (financedAmount > 0 && monthlyInterestRate > 0) {
+                 monthlyMortgage = (financedAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments))) / (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
+            } else if (financedAmount > 0 && monthlyInterestRate === 0) {
+                 // Simple calculation for 0% interest
+                 monthlyMortgage = financedAmount / numberOfPayments;
+            }
+
+            // Required initial investment is the total cost minus the financed amount
+            const requiredInvestment = totalInvestmentCost - financedAmount;
+
+            // Calculate monthly and annual expenses including the new mortgage payment
+            const monthlyTotalExpenses = monthlyOperatingExpenses + monthlyMortgage;
+            const annualTotalExpenses = monthlyTotalExpenses * 12;
+
+            // Calculate monthly and annual revenues and profits
+            const monthlyGrossRevenue = price * occupancy;
+            const monthlyNetProfit = monthlyGrossRevenue - monthlyTotalExpenses;
+            const annualRevenue = monthlyGrossRevenue * 12;
+            const annualNetProfit = monthlyNetProfit * 12;
+
+            // Calculate ROI and Payback Period
+            let roi = 0;
+            if (requiredInvestment > 0) {
+                roi = (annualNetProfit / requiredInvestment) * 100;
+            }
+            const paybackPeriod = annualNetProfit > 0 ? requiredInvestment / annualNetProfit : 'N/A';
+            
+            // Update DOM
+            priceValueSpan.textContent = `$${price}`;
+            occupancyValueSpan.textContent = `${occupancy} noches`;
+            financedValueSpan.textContent = `$${financedAmount.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            interestRateValueSpan.textContent = `${(annualInterestRate * 100).toFixed(2)}%`;
+            loanTermValueSpan.textContent = `${loanTermYears} años`;
+            requiredInvestmentSpan.textContent = `$${requiredInvestment.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            annualRevenueSpan.textContent = `$${annualRevenue.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            annualExpensesSpan.textContent = `$${annualTotalExpenses.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            netProfitSpan.textContent = `$${annualNetProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}`;
+            roiSpan.textContent = `${roi.toFixed(2)}%`;
+            paybackPeriodSpan.textContent = paybackPeriod !== 'N/A' ? `${paybackPeriod.toFixed(2)} años` : 'N/A';
+            document.getElementById('appreciation-value').textContent = `${appreciationRate.toFixed(1)}%`;
+            
+            // Calculate future value of the property
+            const value5Years = totalPropertyCost * Math.pow(1 + (appreciationRate / 100), 5);
+            const value10Years = totalPropertyCost * Math.pow(1 + (appreciationRate / 100), 10);
+            const value15Years = totalPropertyCost * Math.pow(1 + (appreciationRate / 100), 15);
+
+            // Update appreciation values
+            document.getElementById('value-5-years').textContent = `$${value5Years.toLocaleString('es-PA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            document.getElementById('value-10-years').textContent = `$${value10Years.toLocaleString('es-PA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            document.getElementById('value-15-years').textContent = `$${value15Years.toLocaleString('es-PA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+            // Update chart data
+            profitChart.data.datasets[0].data = [annualRevenue, annualTotalExpenses];
+            profitChart.update();
+        }
+
+        // Add event listeners to sliders
+        priceSlider.addEventListener('input', updateFinancials);
+        occupancySlider.addEventListener('input', updateFinancials);
+        financedSlider.addEventListener('input', updateFinancials);
+        interestRateSlider.addEventListener('input', updateFinancials);
+        loanTermSlider.addEventListener('input', updateFinancials); // Add listener for the new slider
+        appreciationSlider.addEventListener('input', updateFinancials); // New listener for appreciation slider
+        
+        // Initial call to set up the dashboard with default values
+        updateFinancials();
+
+        // Image Gallery Logic
+        function updateMainImage() {
+            mainGalleryImage.src = galleryImages[currentImageIndex];
+        }
+
+        function createThumbnails() {
+            galleryImages.forEach((image, index) => {
+                const img = document.createElement('img');
+                img.src = image;
+                img.classList.add('w-12', 'h-12', 'rounded-full', 'object-cover', 'cursor-pointer', 'border-2', 'transition-all');
+                if (index === currentImageIndex) {
+                    img.classList.add('border-blue-500', 'scale-110');
+                } else {
+                    img.classList.add('border-transparent');
+                }
+                img.addEventListener('click', () => {
+                    currentImageIndex = index;
+                    updateMainImage();
+                    updateThumbnails();
+                });
+                thumbnailsContainer.appendChild(img);
+            });
+        }
+
+        function updateThumbnails() {
+            const thumbnails = thumbnailsContainer.querySelectorAll('img');
+            thumbnails.forEach((thumb, index) => {
+                thumb.classList.remove('border-blue-500', 'scale-110');
+                thumb.classList.add('border-transparent');
+                if (index === currentImageIndex) {
+                    thumb.classList.add('border-blue-500', 'scale-110');
+                }
+            });
+        }
+
+        prevBtn.addEventListener('click', () => {
+            currentImageIndex = (currentImageIndex > 0) ? currentImageIndex - 1 : galleryImages.length - 1;
+            updateMainImage();
+            updateThumbnails();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentImageIndex = (currentImageIndex < galleryImages.length - 1) ? currentImageIndex + 1 : 0;
+            updateMainImage();
+            updateThumbnails();
+        });
+
+        // Initialize gallery and thumbnails
+        createThumbnails();
+        updateThumbnails();
+
+        // Modal Logic for all images
+        const imagesToMagnify = document.querySelectorAll('#propiedad img, #diseno-patio img');
+        imagesToMagnify.forEach(img => {
+            img.addEventListener('click', () => {
+                modalImage.src = img.src;
+                imageModal.classList.remove('hidden');
+            });
+        });
+
+        modalCloseBtn.addEventListener('click', () => {
+                imageModal.classList.add('hidden');
+        });
+
+        imageModal.addEventListener('click', (event) => {
+            if (event.target === imageModal) {
+                imageModal.classList.add('hidden');
+            }
+        });
+        
+    </script>
+</body>
+</html>
